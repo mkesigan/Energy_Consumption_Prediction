@@ -166,27 +166,30 @@ Generated plots include:
 ```bash
 pip install -r requirements.txt
 ```
-2. Run the pipeline
+
+### 2. Run the pipeline
+```bash
 python src/train.py
+```
 
-4. Output
-Model performance printed in terminal
-Plots saved in /reports
-Final model saved in /models
+### 3. Output
+- Model performance printed in terminal
+- Plots saved in /reports
+- Final model saved in /models
 
-🛠️ Tech Stack
+### 🛠️ Tech Stack
 - Python
 - Pandas, NumPy
 - Scikit-learn
 - PyTorch
 - Matplotlib
 
-📌 Conclusion
+### 📌 Conclusion
 
 This project demonstrates:
 - End-to-end time-series modeling
 - Feature-driven learning vs sequence learning
 - Practical trade-offs between ML and Deep Learning
 
-👨‍💻 Author
+# 👨‍💻 Author
 - Kesigan Mukuntharathan
