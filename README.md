@@ -20,6 +20,28 @@ To design an end-to-end pipeline that:
 
 ---
 
+## 🔄 End-to-End Pipeline Flow
+
+The project follows a rigorous machine learning lifecycle to ensure data integrity and model performance:
+
+```mermaid
+graph TD
+    A["Raw Data (energy_data_set.csv)"] --> B["Data Preprocessing"]
+    B --> C["Feature Engineering"]
+    C --> D["Feature Selection"]
+    D --> E["Train/Test Split (Time-based)"]
+    E --> F["Baseline Models (LR, RF)"]
+    F --> G["Deep Learning Models (LSTM, GRU)"]
+    G --> H["Model Optimization (Grid Search + Early Stopping)"]
+    H --> I["Evaluation & Visualization)"]
+    I --> J["Final Model Selection"]
+    J --> K["Final Model Deployment (trained_model.pth)"]
+
+
+
+```
+
+---
 ### 📂 Project Structure
 
 ```text
