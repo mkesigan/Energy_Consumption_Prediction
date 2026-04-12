@@ -1,0 +1,15 @@
+# Data Manipulation
+pandas
+numpy
+scipy
+
+# Visualization
+matplotlib
+seaborn
+
+# Machine Learning
+scikit-learn
+joblib
+
+# Deep Learning
+torch
