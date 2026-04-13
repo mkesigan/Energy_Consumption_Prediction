@@ -71,7 +71,7 @@ Energy_Prediction_Project/
 ### 🔹 1. Data Preprocessing
 - Time-based interpolation (no missing values originally)
 - Outlier detection using **Z-score (analysis)** and **IQR (removal)**
-- Time-based train-test split (80/20)
+- Time-based train-test split (70/15/15)
 - Min-Max Scaling (features only)
 
 ---
@@ -130,10 +130,10 @@ graph TD
 
 | Model | MAE | RMSE | R² |
 |------|-----|------|-----|
-| Linear Regression | 8.83 | 12.83 | 0.7672 |
-| Random Forest | ⭐ 8.17 | ⭐ 12.10 | ⭐ 0.7931 |
-| Optimized LSTM | 10.18 | 15.39 | 0.6653 |
-| Optimized GRU | 10.22 | 15.32 | 0.6685 |
+| Linear Regression | 8.40 | 12.16 | 0.7844 |
+| Random Forest | ⭐ 8.03 | ⭐ 11.81 | ⭐ 0.7968 |
+| Optimized LSTM | 9.99 | 14.75 | 0.6835 |
+| Optimized GRU | 10.18 | 14.88 | 0.6781 |
 
 ---
 
