@@ -111,7 +111,7 @@ def train_model(model, train_loader, val_loader, optimizer, criterion, epochs):
         t_loss = 0
         for xb, yb in train_loader:
             optimizer.zero_grad()
-            loss = criterion(model(xb).squeeze(-1), yb)  # FIXED
+            loss = criterion(model(xb).squeeze(-1), yb) 
             loss.backward()
             optimizer.step()
             t_loss += loss.item()
@@ -123,7 +123,7 @@ def train_model(model, train_loader, val_loader, optimizer, criterion, epochs):
         v_loss = 0
         with torch.no_grad():
             for xb, yb in val_loader:
-                v_loss += criterion(model(xb).squeeze(-1), yb).item()  # FIXED
+                v_loss += criterion(model(xb).squeeze(-1), yb).item()  
 
         val_losses.append(v_loss / len(val_loader))
 
