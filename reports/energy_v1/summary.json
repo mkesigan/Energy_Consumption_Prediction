@@ -1,0 +1,40 @@
+[
+  {
+    "model_id": "RandomForest_leaf8",
+    "horizon_steps": 1,
+    "horizon_minutes": 10,
+    "selection_metric": "validation RMSE in Wh",
+    "validation_metrics": {
+      "model": "RandomForest_leaf8",
+      "MAE_Wh": 27.78756951472074,
+      "RMSE_Wh": 57.70501125972188,
+      "R2": 0.6086215080282475,
+      "bias_Wh": 6.175870228598405,
+      "peak_MAE_Wh": 121.69327356543988,
+      "peak_count": 230,
+      "n": 2960
+    },
+    "peak_threshold_Wh": 210.0,
+    "boundaries": {
+      "validation_starts": "2016-04-16 15:20:00",
+      "test_starts": "2016-05-07 04:40:00"
+    },
+    "partition_sizes": {
+      "train": 13670,
+      "validation": 2960,
+      "test": 2961
+    },
+    "selection_order": "frozen before test predictions and metrics",
+    "test_metrics": {
+      "model": "RandomForest_leaf8",
+      "selected_by_validation": true,
+      "MAE_Wh": 32.89917823192005,
+      "RMSE_Wh": 62.08441443926415,
+      "R2": 0.5332415775364086,
+      "bias_Wh": 13.133550868407289,
+      "peak_MAE_Wh": 113.20275569793928,
+      "peak_count": 248,
+      "n": 2961
+    }
+  }
+]

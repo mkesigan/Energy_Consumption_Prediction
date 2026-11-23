@@ -1,0 +1,74 @@
+[
+  {
+    "model_id": "ensemble__weighted",
+    "initial_model_id": "initial__RandomForest_leaf8",
+    "horizon_steps": 1,
+    "horizon_minutes": 10,
+    "selection_metric": "validation RMSE in Wh",
+    "peak_threshold_Wh": 210.0,
+    "boundaries": {
+      "validation_starts": "2016-04-16 15:20:00",
+      "test_starts": "2016-05-07 04:40:00"
+    },
+    "partition_sizes": {
+      "train": 13670,
+      "validation": 2960,
+      "test": 2961
+    },
+    "validation_metrics": {
+      "model": "ensemble__weighted",
+      "phase": "ensemble",
+      "family": "Ensemble",
+      "configuration": "{\"components\": [{\"model_id\": \"optimized__RandomForest_02\", \"weight\": 0.5}, {\"model_id\": \"optimized__Boosting_02\", \"weight\": 0.25}, {\"model_id\": \"optimized__GRU_01\", \"weight\": 0.25}]}",
+      "MAE_Wh": 24.78957504210164,
+      "RMSE_Wh": 55.81956751465988,
+      "R2": 0.6337793493517881,
+      "bias_Wh": 1.4481029912005137,
+      "peak_MAE_Wh": 124.98678560573354,
+      "peak_count": 230,
+      "n": 2960
+    },
+    "selection_order": "frozen before test evaluation",
+    "initial_test_metrics": {
+      "model": "initial__RandomForest_leaf8",
+      "phase": "initial",
+      "family": "RandomForest",
+      "selected_by_validation": false,
+      "MAE_Wh": 32.89917823192005,
+      "RMSE_Wh": 62.08441443926415,
+      "R2": 0.5332415775364086,
+      "bias_Wh": 13.133550868407289,
+      "peak_MAE_Wh": 113.20275569793928,
+      "peak_count": 248,
+      "n": 2961
+    },
+    "final_test_metrics": {
+      "model": "ensemble__weighted",
+      "phase": "ensemble",
+      "family": "Ensemble",
+      "selected_by_validation": true,
+      "MAE_Wh": 24.81145983593831,
+      "RMSE_Wh": 57.195340038393496,
+      "R2": 0.6038603830656102,
+      "bias_Wh": 0.7594092821069458,
+      "peak_MAE_Wh": 121.86333516188662,
+      "peak_count": 248,
+      "n": 2961
+    },
+    "test_RMSE_reduction_percent": 7.874882037670712,
+    "ensemble_components": [
+      {
+        "model_id": "optimized__RandomForest_02",
+        "weight": 0.5
+      },
+      {
+        "model_id": "optimized__Boosting_02",
+        "weight": 0.25
+      },
+      {
+        "model_id": "optimized__GRU_01",
+        "weight": 0.25
+      }
+    ]
+  }
+]

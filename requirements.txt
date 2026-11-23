@@ -1,15 +1,13 @@
-# Data Manipulation
-pandas
-numpy
-scipy
+# Runtime dependencies from the verified environment.
+--extra-index-url https://download.pytorch.org/whl/cpu
 
-# Visualization
-matplotlib
-seaborn
-
-# Machine Learning
-scikit-learn
-joblib
-
-# Deep Learning
-torch
+numpy==2.3.5
+pandas==2.3.3
+scipy==1.16.3
+scikit-learn==1.7.2
+joblib==1.5.2
+threadpoolctl==3.6.0
+torch==2.9.1+cpu
+matplotlib==3.10.8
+seaborn==0.13.2
+streamlit==1.51.0

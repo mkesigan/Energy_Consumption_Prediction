@@ -1,130 +1,230 @@
-import pandas as pd
+import argparse
+from pathlib import Path
+
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
-from scipy.stats import zscore
+import pandas as pd
 
 
-class DataPreprocessor:
-    def __init__(self):
-        # Initialize Min-Max scaler for feature normalization
-        self.scaler = MinMaxScaler()
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_DATA_PATH = (
+    PROJECT_ROOT / "data" / "raw" / "energy_data_set.csv"
+)
 
-    # 1. Load Data
-    def load_data(self, path):
-        # Load dataset from CSV file
-        df = pd.read_csv(path)
+INTERVAL = pd.Timedelta(minutes=10)
 
-        # Convert 'date' column to datetime format
-        df['date'] = pd.to_datetime(df['date'])
+# One day of 10-minute observations.
+HISTORY = 144
 
-        # Sort data chronologically (for time-series)
-        df = df.sort_values('date')
+# Directly recorded building measurements.
+SENSORS = ["lights"] + [
+    column
+    for number in range(1, 10)
+    for column in (f"T{number}", f"RH_{number}")
+]
 
-        print("Data Loaded:", df.shape)
-        return df
+REQUIRED = ["date", "Appliances", *SENSORS]
 
-    # 2. Handle Duplicates
-    def handle_duplicates(self, df):
-        # Count duplicate rows
-        before = df.duplicated().sum()
-        # Remove duplicates
-        df = df.drop_duplicates()
-        after = df.duplicated().sum()
+HUMIDITY_COLUMNS = [
+    column
+    for column in SENSORS
+    if column.startswith("RH_")
+]
 
-        print(f"Duplicates removed: {before - after}")
-        return df
 
-    # 3. Handle Missing Values
-    def handle_missing(self, df):
-        # Check missing values before processing
-        print("Missing values before:", df.isnull().sum().sum())
+def validate_frame(
+    frame: pd.DataFrame,
+    min_rows: int = HISTORY,
+) -> pd.DataFrame:
+    """
+    Return a validated, chronologically sorted copy of the observations.
 
-        # Set 'date' as index for time-based operations
-        df = df.set_index('date')
+    Validation rules:
+        - Required columns must exist.
+        - Timestamps must be complete, unique and timezone-naive.
+        - Consecutive timestamps must be exactly ten minutes apart.
+        - Measurements must be numeric, complete and finite.
+        - Appliance and lighting energy must be nonnegative.
+        - Relative humidity must be between zero and 100 percent.
 
-        # Time-based interpolation
-        df = df.interpolate(method='time')
+    High-consumption observations are retained.
+    Missing values are not interpolated or filled.
+    Extra columns are excluded from the returned forecasting inputs.
+    """
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError("Expected a pandas DataFrame.")
 
-        # Fill remaining values
-        df = df.bfill().ffill()
+    if min_rows < 1:
+        raise ValueError("min_rows must be positive.")
 
-        df = df.reset_index()
+    if not frame.columns.is_unique:
+        raise ValueError("Duplicate column names are not allowed.")
 
-        print("Missing values after:", df.isnull().sum().sum())
-        return df
+    missing_columns = sorted(
+        set(REQUIRED) - set(frame.columns)
+    )
 
-    # 4. Detect Outliers (Z-score)
-    def detect_outliers(self, df):
-        # Select only numeric columns
-        numeric_df = df.select_dtypes(include=[np.number])
+    if missing_columns:
+        raise ValueError(
+            "Missing required columns: "
+            + ", ".join(missing_columns)
+        )
 
-        # Compute Z-scores (ignore NaNs)
-        z_scores = np.abs(zscore(numeric_df, nan_policy='omit'))
+    df = frame.loc[:, REQUIRED].copy()
 
-        # Count values beyond threshold
-        outliers = (z_scores > 3).sum().sum()
+    # Parse timestamps without silently discarding invalid values.
+    try:
+        df["date"] = pd.to_datetime(
+            df["date"],
+            errors="raise",
+        )
+    except (ValueError, TypeError) as exc:
+        raise ValueError(
+            "The date column contains invalid timestamps."
+        ) from exc
 
-        print("Outliers detected (Z-score):", outliers)
-        return outliers
+    if df["date"].isna().any():
+        raise ValueError("Timestamps cannot be missing.")
 
-    # 5. Remove Outliers (IQR)
-    def remove_outliers(self, df):
-        # Calculate Q1 and Q3 for target variable
-        Q1 = df['Appliances'].quantile(0.25)
-        Q3 = df['Appliances'].quantile(0.75)
+    try:
+        timezone = df["date"].dt.tz
+    except AttributeError as exc:
+        raise ValueError(
+            "Use consistent timezone-naive timestamps."
+        ) from exc
 
-        # Compute Interquartile Range (IQR)
-        IQR = Q3 - Q1
+    if timezone is not None:
+        raise ValueError(
+            "Use timezone-naive timestamps consistently, "
+            "as in the supplied dataset."
+        )
 
-        before = len(df)
+    df = df.sort_values("date").reset_index(drop=True)
 
-        # Filter values within acceptable IQR range
-        df = df[
-            (df['Appliances'] >= Q1 - 1.5 * IQR) &
-            (df['Appliances'] <= Q3 + 1.5 * IQR)
-        ]
+    if len(df) < min_rows:
+        raise ValueError(
+            f"At least {min_rows} observations are required; "
+            f"received {len(df)}."
+        )
 
-        after = len(df)
+    if df["date"].duplicated().any():
+        raise ValueError(
+            "Duplicate timestamps found. "
+            "Resolve them before forecasting."
+        )
 
-        print(f"Outliers removed (IQR): {before - after}")
-        return df
+    time_differences = df["date"].diff().dropna()
 
-    # 6. Split Data (Time-Based)
-    def split_data(self, df, test_size=0.2):
-        # Determine split index based on time order
-        split_index = int(len(df) * (1 - test_size))
+    if not time_differences.eq(INTERVAL).all():
+        raise ValueError(
+            "Observations must have uninterrupted "
+            "10-minute timestamps."
+        )
 
-        # Split dataset chronologically (no shuffling)
-        train_df = df.iloc[:split_index].copy()
-        test_df = df.iloc[split_index:].copy()
+    measurement_columns = REQUIRED[1:]
 
-        print("Train shape:", train_df.shape)
-        print("Test shape:", test_df.shape)
+    for column in measurement_columns:
+        try:
+            df[column] = pd.to_numeric(
+                df[column],
+                errors="raise",
+            )
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                f"Column '{column}' must contain numeric values."
+            ) from exc
 
-        return train_df, test_df
+    if df[measurement_columns].isna().any().any():
+        raise ValueError(
+            "Measurements contain missing values. "
+            "Provide complete observations."
+        )
 
-    # 7. Scaling (Min-Max)
-    def scale_data(self, train_df, test_df, target_column='Appliances'):
+    measurements = df[measurement_columns].to_numpy(
+        dtype=np.float64
+    )
 
-        # Separate features and target
-        X_train = train_df.drop(columns=[target_column, 'date'])
-        y_train = train_df[target_column]
+    if not np.isfinite(measurements).all():
+        raise ValueError(
+            "Measurements cannot contain infinity "
+            "or other non-finite values."
+        )
 
-        X_test = test_df.drop(columns=[target_column, 'date'])
-        y_test = test_df[target_column]
+    if (df[["Appliances", "lights"]] < 0).any().any():
+        raise ValueError(
+            "Appliance and lighting energy cannot be negative."
+        )
 
-        # Fit scaler on training data only (avoid data leakage)
-        X_train_scaled = self.scaler.fit_transform(X_train)
+    invalid_humidity = (
+        (df[HUMIDITY_COLUMNS] < 0)
+        | (df[HUMIDITY_COLUMNS] > 100)
+    )
 
-        # Apply same transformation to test data
-        X_test_scaled = self.scaler.transform(X_test)
-        
-        # Convert back to DataFrame for consistency
-        X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns, index=X_train.index)
-        X_test_scaled = pd.DataFrame(X_test_scaled, columns=X_test.columns, index=X_test.index)
+    if invalid_humidity.any().any():
+        raise ValueError(
+            "Relative humidity must be between "
+            "zero and 100 percent."
+        )
 
-        print("Scaling completed using MinMaxScaler")
-        print("Train features:", X_train_scaled.shape)
-        print("Test features:", X_test_scaled.shape)
+    return df
 
-        return X_train_scaled, X_test_scaled, y_train, y_test
+
+def load_raw(
+    path: str | Path = DEFAULT_DATA_PATH,
+    min_rows: int = HISTORY,
+) -> pd.DataFrame:
+    """Read a CSV and validate its forecasting inputs."""
+    csv_path = Path(path)
+
+    if not csv_path.is_file():
+        raise FileNotFoundError(
+            f"Dataset file not found: {csv_path}"
+        )
+
+    try:
+        frame = pd.read_csv(csv_path)
+    except pd.errors.EmptyDataError as exc:
+        raise ValueError("The CSV file is empty.") from exc
+    except pd.errors.ParserError as exc:
+        raise ValueError(
+            "The CSV file could not be parsed."
+        ) from exc
+
+    return validate_frame(frame, min_rows=min_rows)
+
+
+def main() -> None:
+    """Run an input-validation check without training or saving files."""
+    parser = argparse.ArgumentParser(
+        description="Validate the appliance-energy dataset."
+    )
+    parser.add_argument(
+        "--data",
+        type=Path,
+        default=DEFAULT_DATA_PATH,
+        help="Path to the original energy dataset CSV.",
+    )
+    args = parser.parse_args()
+
+    df = load_raw(args.data)
+
+    train_end = int(len(df) * 0.70)
+    validation_end = int(len(df) * 0.85)
+
+    print("Data validation passed.")
+    print(f"Observations retained: {len(df):,}")
+    print(f"Forecasting input columns: {len(df.columns)}")
+    print(f"First timestamp: {df['date'].iloc[0]}")
+    print(f"Last timestamp: {df['date'].iloc[-1]}")
+    print("Timestamp interval: 10 minutes")
+    print("Rows removed: 0")
+
+    print("\nRaw chronological partition sizes:")
+    print(f"Training: {train_end:,}")
+    print(f"Validation: {validation_end - train_end:,}")
+    print(f"Testing: {len(df) - validation_end:,}")
+
+    print("\nNo scaling, model training or file saving was performed.")
+
+
+if __name__ == "__main__":
+    main()
