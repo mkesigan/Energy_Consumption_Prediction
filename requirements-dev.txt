@@ -1,0 +1,6 @@
+# Testing and notebook development.
+-r requirements.txt
+
+pytest==8.4.2
+ipykernel==7.4.0
+ipython==9.19.1
